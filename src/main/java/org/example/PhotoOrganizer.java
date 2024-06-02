@@ -17,9 +17,8 @@ import java.util.Date;
 public class PhotoOrganizer {
 
     public static void main(String[] args) {
-        String sourceDirectory = "/Users/deepakvishwakarma/deepak-drive-f/iCloudPhotosLivePhotos";  // Replace with the path to your source directory
-        String destinationRoot = "/Users/deepakvishwakarma/deepak-drive-f/output-images";  // Replace with the path to your destination root directory
-
+        String sourceDirectory = "/Users/deepakvishwakarma/deepak-drive-e/temp";
+        String destinationRoot = sourceDirectory+"_output";  // Replace with the path to your destination root directory
         try {
             organizePhotos(sourceDirectory, destinationRoot);
         } catch (IOException e) {
@@ -31,26 +30,24 @@ public class PhotoOrganizer {
         Files.walkFileTree(Paths.get(sourceDirectory), new SimpleFileVisitor<Path>() {
             @Override
             public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                if (isPhoto(file)) {
-                    Date creationDate = getCreationDate(file.toFile());
-                    if (creationDate != null) {
-                        moveFile(file, creationDate, destinationRoot);
+
+                if(!file.toFile().getName().endsWith(".DS_Store")){
+                    try {
+                        deletefiles(file.toFile());
+                    }catch (Exception e) {
+                        System.out.println("Exception in deleting files");
+                        e.printStackTrace();
                     }
-                }
-                if (isQuickTimeVideo(file)) {
-                    Date creationDate = getCreationDateForVideo(file.toFile());
+
+                    Date creationDate=null;
+                    // Remove true from below
+                    if (true || isPhoto(file)) {
+                        creationDate = getImageCreationDate(file.toFile());
+                    }else if (isQuickTimeVideo(file)) {
+                        creationDate = getCreationDateForVideo(file.toFile());
+                    }
                     if (creationDate != null) {
                         moveFile(file, creationDate, destinationRoot);
-//                        String monthYearFolderName = new SimpleDateFormat("yyyy-MM").format(creationDate);
-//                        Path destinationDirectory = Paths.get(destinationRoot, monthYearFolderName);
-//
-//                        // Create the destination directory if it doesn't exist
-//                        if (Files.notExists(destinationDirectory)) {
-//                            Files.createDirectories(destinationDirectory);
-//                        }
-//
-//                        // Move the file to the destination directory
-//                        Files.move(file, Paths.get(destinationDirectory.toString(), file.getFileName().toString()), StandardCopyOption.REPLACE_EXISTING);
                     }
                 }
                 return FileVisitResult.CONTINUE;
@@ -72,9 +69,9 @@ public class PhotoOrganizer {
     }
 
     private static boolean isPhoto(Path file) {
-        return true;
-//        String fileName = file.getFileName().toString().toLowerCase();
-//        return fileName.endsWith(".jpg") || fileName.endsWith(".jpeg") || fileName.endsWith(".png");
+        String fileName = file.getFileName().toString().toLowerCase();
+        return fileName.endsWith(".jpg") || fileName.endsWith(".jpeg") || fileName.endsWith(".png")
+                || fileName.endsWith(".HEIC") || fileName.endsWith(".heic") || fileName.endsWith(".gif");
     }
 
     private static boolean isQuickTimeVideo(Path file) {
@@ -82,18 +79,8 @@ public class PhotoOrganizer {
         return fileName.endsWith(".mov") || fileName.endsWith(".mp4");
     }
 
-    private static Date getCreationDate(File file) {
+    private static Date getImageCreationDate(File file) {
 
-        if (file.isFile() && file.getName().toLowerCase().endsWith(".aae")) {
-            System.out.println("Deleting .AAE file: " + file.getName());
-            boolean deleted = file.delete();
-            if (deleted) {
-                System.out.println("File deleted successfully. " + file);
-            } else {
-                System.out.println("Failed to delete file. " + file);
-            }
-            return null;
-        }
 
         try {
             Metadata metadata = ImageMetadataReader.readMetadata(file);
@@ -110,10 +97,24 @@ public class PhotoOrganizer {
             System.out.println("ImageProcessingException : "+file);
             //throw new RuntimeException(e);
         }
-
-
-
         return null;
+    }
+
+    private static void deletefiles(File file) {
+        //if file format is .aae then delete it.
+        //.DS_Store
+        if (file.isFile() && (file.getName().toLowerCase().endsWith(".aae")
+                || file.getName().toLowerCase().endsWith(".json")
+                || file.getName().toLowerCase().endsWith(".DS_Store")
+        )) {
+            System.out.println("Deleting file: " + file.getName());
+            boolean deleted = file.delete();
+            if (deleted) {
+                System.out.println("File deleted successfully. " + file);
+            } else {
+                System.out.println("Failed to delete file. " + file);
+            }
+        }
     }
 
     private static Date getCreationDateForVideo(File file) {
@@ -141,7 +142,6 @@ public class PhotoOrganizer {
             return new Date(file.lastModified());
             //throw new RuntimeException(e);
         }
-
         return null;
     }
 }
